@@ -1,4 +1,5 @@
 import math
+import re
 from typing import List, Dict
 
 tiles_orig: Dict[int, List[str]] = {}
@@ -14,7 +15,7 @@ def get_tile_number(s: str) -> int:
     return int(nb[:-2])
 
 
-file = open('input20_test.txt')
+file = open('input20.txt')
 line = file.readline()
 
 tile_nb: int = 0
@@ -127,7 +128,6 @@ def find_bottom_match(index: int, piece: List[str], options: List[int]) -> bool:
 
 
 def find_right_match(index: int, piece: List[str], options: List[int]) -> bool:
-    right: str = rotate_cw(rotate_cw(rotate_cw(piece)))[0]
     for t in options:
         if t == index:
             continue
@@ -221,11 +221,42 @@ def join_rows(row: List[int]) -> List[str]:
     return full_grid
 
 
-# print final picture
-print("\nPICTURE:")
+# form final picture
 picture: List[List[str]] = []
+final_picture: List[str] = []
 for g in grid:
     picture.append(join_rows(g))
 for pic in picture:
     for r in pic:
-        print(r)
+        final_picture.append(r)
+
+
+# search for dragons
+nb_dragons: int = 0
+while nb_dragons == 0:
+    for _ in range(4):
+        for _ in range(2):
+            for i in range(len(final_picture)):
+                try:
+                    for c in range(len(final_picture[i])-20):
+                        first_row = re.search("..................#.", final_picture[i][c:c+20])
+                        second_row = re.search("#....##....##....###", final_picture[i+1][c:c+20])
+                        third_row = re.search(".#..#..#..#..#..#...", final_picture[i+2][c:c+20])
+                        if first_row and second_row and third_row:
+                            nb_dragons += 1
+                except IndexError:
+                    pass
+            final_picture = flip(final_picture)
+        final_picture = rotate_cw(final_picture)
+
+
+NB_HASHTAGS_DRAGON: int = 15
+nb_hashtags_total: int = 0
+for row in final_picture:
+    for char in row:
+        if char == "#":
+            nb_hashtags_total += 1
+
+print("\nnumber of total #'s: {0}".format(nb_hashtags_total))
+print("number of dragons: {0}".format(nb_dragons))
+print("ANSWER: {0}".format(nb_hashtags_total - NB_HASHTAGS_DRAGON * nb_dragons))
