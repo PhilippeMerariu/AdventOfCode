@@ -1,3 +1,4 @@
+import math
 from typing import List, Dict
 
 tiles_orig: Dict[int, List[str]] = {}
@@ -37,6 +38,15 @@ file.close()
 
 tiles_final = tiles_orig.copy()
 
+# init empty grid
+grid_size: int = int(math.sqrt(len(tiles_orig)))
+column: List[int] = []
+for i in range(grid_size):
+    for j in range(grid_size):
+        column.append(0)
+    grid.append(column.copy())
+    column.clear()
+
 
 def rotate_cw(piece: List[str]) -> List[str]:
     new_line: str = ""
@@ -57,8 +67,28 @@ def flip(piece: List[str]) -> List[str]:
     return new_piece
 
 
+def add_to_grid(start_tile: int, new_tile: int, position: str):
+    for i in range(len(grid)):
+        for j in range(len(grid)):
+            if grid[i][j] == start_tile:
+                if position == "bottom":
+                    grid[i + 1][j] = new_tile
+                else:
+                    grid[i][j + 1] = new_tile
+
+
 def compare(p1: str, p2: str) -> bool:
     return p1 == p2
+
+
+def compare_side(right: List[str], left: List[str]) -> bool:
+    right_side: str = ""
+    left_side: str = ""
+    for r in right:
+        right_side += r[-1]
+    for l in left:
+        left_side += l[0]
+    return right_side == left_side
 
 
 def find_top_match(index: int, piece: List[str]):
@@ -71,12 +101,52 @@ def find_top_match(index: int, piece: List[str]):
             for _ in range(2):
                 if compare(top, other_piece[len(other_piece) - 1]):
                     matched.append(t)
+                    tiles_final.update({t: other_piece})
                 other_piece = flip(other_piece)
             other_piece = rotate_cw(other_piece)
 
 
+def find_bottom_match(index: int, piece: List[str], options: List[int]) -> bool:
+    bottom: str = piece[-1]
+    for t in options:
+        if t == index:
+            continue
+        other_piece: List[str] = tiles_final.get(t)
+        for _ in range(4):
+            for _ in range(2):
+                if compare(bottom, other_piece[0]):
+                    if t not in matched:
+                        matched.append(t)
+                    tiles_final.update({t: other_piece})
+                    add_to_grid(index, t, "bottom")
+                    return True
+                other_piece = flip(other_piece)
+            other_piece = rotate_cw(other_piece)
+    print("no bottom match found -> {0}".format(index))
+    return False
+
+
+def find_right_match(index: int, piece: List[str], options: List[int]) -> bool:
+    right: str = rotate_cw(rotate_cw(rotate_cw(piece)))[0]
+    for t in options:
+        if t == index:
+            continue
+        other_piece: List[str] = tiles_final.get(t)
+        for _ in range(4):
+            for _ in range(2):
+                if compare_side(piece, other_piece):
+                    if t not in matched:
+                        matched.append(t)
+                    tiles_final.update({t: other_piece})
+                    add_to_grid(index, t, "right")
+                    return True
+                other_piece = flip(other_piece)
+            other_piece = rotate_cw(other_piece)
+    print("no right match found -> {0}".format(index))
+    return False
+
+
 def find_all_matches():
-    res = False
     for t in tiles_orig:
         piece = tiles_orig.get(t)
         for _ in range(4):
@@ -110,11 +180,46 @@ for index in links:
     else:
         middle_tiles.append(index)
 
-print("Corner = {0}".format(len(corner_tiles)))
-print("Border = {0}".format(len(border_tiles)))
-print("Middle = {0}".format(len(middle_tiles)))
+print("# Corners = {0}".format(len(corner_tiles)))
+print("# Borders = {0}".format(len(border_tiles)))
+print("# Middles = {0}".format(len(middle_tiles)))
+print()
 
 # fix top-right corner piece
 # rotate all other pieces to match to it
+grid[0][0] = corner_tiles[0]
+matched.clear()
+matched.append(corner_tiles[0])
+
+# find first match to get correct orientation of corner piece
+# piece = tiles_final.get(corner_tiles[0])
+# find_bottom_match(corner_tiles[0], piece, links.get(corner_tiles[0]))
+# find_right_match(corner_tiles[0], piece, links.get(corner_tiles[0]))
+for tile in matched:
+    piece = tiles_final.get(tile)
+    find_bottom_match(tile, piece, links.get(tile))
+    find_right_match(tile, piece, links.get(tile))
+
+print("\nGRID IDs:")
+for g in grid:
+    print(g)
 
 
+def join_rows(row: List[int]) -> List[str]:
+    full_grid: List[str] = []
+    for _ in range(len(list(tiles_orig.values())[0][0])):
+        full_grid.append("")
+    for r in row:
+        piece = tiles_final.get(r)
+        for j in range(len(piece)):
+            full_grid[j] += piece[j]
+    return full_grid
+
+
+picture: List[List[str]] = []
+for g in grid:
+    picture.append(join_rows(g))
+
+for pic in picture:
+    for r in pic:
+        print(r)
