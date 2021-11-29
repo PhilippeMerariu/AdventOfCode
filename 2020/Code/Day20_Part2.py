@@ -191,10 +191,7 @@ grid[0][0] = corner_tiles[0]
 matched.clear()
 matched.append(corner_tiles[0])
 
-# find first match to get correct orientation of corner piece
-# piece = tiles_final.get(corner_tiles[0])
-# find_bottom_match(corner_tiles[0], piece, links.get(corner_tiles[0]))
-# find_right_match(corner_tiles[0], piece, links.get(corner_tiles[0]))
+# find position of all tiles
 for tile in matched:
     piece = tiles_final.get(tile)
     find_bottom_match(tile, piece, links.get(tile))
@@ -204,10 +201,18 @@ print("\nGRID IDs:")
 for g in grid:
     print(g)
 
+# remove borders of all tiles
+for tile_id in tiles_final:
+    tile = tiles_final.get(tile_id)[1:-1]
+    new_tile: List[str] = []
+    for line in tile:
+        new_tile.append(line[1:-1])
+    tiles_final.update({tile_id: new_tile})
+
 
 def join_rows(row: List[int]) -> List[str]:
     full_grid: List[str] = []
-    for _ in range(len(list(tiles_orig.values())[0][0])):
+    for _ in range(len(list(tiles_final.values())[0][0])):
         full_grid.append("")
     for r in row:
         piece = tiles_final.get(r)
@@ -216,10 +221,11 @@ def join_rows(row: List[int]) -> List[str]:
     return full_grid
 
 
+# print final picture
+print("\nPICTURE:")
 picture: List[List[str]] = []
 for g in grid:
     picture.append(join_rows(g))
-
 for pic in picture:
     for r in pic:
         print(r)
