@@ -10,9 +10,17 @@ while line:
     line = file.readline()
 file.close()
 
+sums: List[int] = []
+
+for i in range(len(numbers)):
+    try:
+        sums.append(numbers[i] + numbers[i+1] + numbers[i+2])
+    except:
+        pass
+
 prev: int = None
 increases: int = 0
-for curr in numbers:
+for curr in sums:
     if prev is None:
         prev = curr
     else:
