@@ -1,23 +1,25 @@
 from typing import List
 
-file = open('input1.txt')
+file = open('input2.txt')
 line = file.readline()
 
-numbers: List[int] = []
+commands: List[str] = []
+horizontal: int = 0
+depth: int = 0
 
 while line:
-    numbers.append(int(line))
+    commands.append(line.strip())
     line = file.readline()
 file.close()
 
-prev: int = None
-increases: int = 0
-for curr in numbers:
-    if prev is None:
-        prev = curr
+for com in commands:
+    orientation, position = com.split(" ")
+    if orientation == "forward":
+        horizontal += int(position)
+    elif orientation == "down":
+        depth += int(position)
     else:
-        if curr > prev:
-            increases += 1
-    prev = curr
+        depth -= int(position)
 
-print("ANSWER = {0}".format(increases))
+
+print("ANSWER = {0}".format(horizontal * depth))
