@@ -36,12 +36,13 @@ boards.update({count: board.copy()})
 
 
 def search_boards(nb: int):
-    for i in boards:
-        brd: List[List[int]] = boards.get(i).copy()
+    copy_boards = boards.copy()
+    for i in copy_boards:
+        brd: List[List[int]] = copy_boards.get(i).copy()
         for b in brd:
-            for i in range(len(b)):
-                if b[i] == nb:
-                    b[i] = -1
+            for j in range(len(b)):
+                if b[j] == nb:
+                    b[j] = -1
         boards.update({i: brd})
 
 
@@ -59,8 +60,8 @@ def check_cols() -> List[int]:
     completed_cols: List[int] = []
     for i in boards:
         brd: List[List[int]] = boards.get(i)
-        col: bool = True
         for j in range(len(brd)):
+            col: bool = True
             for b in brd:
                 if b[j] != -1:
                     col = False
@@ -81,6 +82,7 @@ def calculate_result(index: int, nb: int) -> int:
 
 answer: int = 0
 copy_boards = boards.copy()
+last_board: int = -1
 
 # start bingo game
 for nb in numbers:
@@ -98,7 +100,9 @@ for nb in numbers:
         except KeyError:
             pass
     if len(copy_boards) == 1:
-        answer = calculate_result(list(copy_boards.keys())[0], nb)
+        last_board = list(copy_boards.keys())[0]
+    if not copy_boards:
+        answer = calculate_result(last_board, nb)
         break
 
 print("ANSWER = {0}".format(answer))
