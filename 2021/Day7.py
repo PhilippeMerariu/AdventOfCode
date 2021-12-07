@@ -1,71 +1,40 @@
-from typing import List
+from typing import List, Dict
 
-file = open('input5.txt')
+import numpy
+from scipy.stats import stats
+
+file = open('input7.txt')
 line = file.readline().strip()
 
-lines: List[List[List[int]]] = []
-coords: List[List[int]] = []
-grid_size: int = 0
+crab_list: List[int] = [int(x) for x in line.split(",")]
+crabs: Dict[int, int] = {}  # pos, count
 
-while line:
-    temp = line.strip().split(" ->")
-    for t in temp:
-        coords.append([int(x) for x in t.split(",")])
-    if coords[0][0] == coords[1][0] or coords[0][1] == coords[1][1]:
-        lines.append(coords.copy())
-        # get grid size
-        for c in coords:
-            for val in c:
-                if val > grid_size:
-                    grid_size = val + 1
-    coords.clear()
-    line = file.readline()
+for i in crab_list:
+    nb_crabs: int = len([x for x in crab_list if x == i])
+    crabs.update({i: nb_crabs})
+
 file.close()
 
-# construct empty grid
-grid: List[List[str]] = []
-for i in range(grid_size):
-    grid_row: List[str] = []
-    for j in range(grid_size):
-        grid_row.append('.')
-    grid.append(grid_row.copy())
+mean: int = round(sum(crab_list) / len(crab_list))
+median: int = round(numpy.median(crab_list))
+mode: int = stats.mode(crab_list)
 
 
-def fill_line(x: int, y: int):
-    if grid[x][y] == '.':
-        grid[x][y] = '1'
-    else:
-        grid[x][y] = str(int(grid[x][y]) + 1)
+def calculate_fuel(nb: int) -> int:
+    fuel: int = 0
+    for pos, count in crabs.items():
+        fuel += abs(nb - pos) * count
+    return fuel
 
 
-def draw_horizontal(col: int, start: int, end: int):
-    for i in range(min(start, end), max(start, end) + 1):
-        fill_line(col, i)
+mean_fuel: int = calculate_fuel(mean)
+median_fuel: int = calculate_fuel(median)
+mode_fuel: int = calculate_fuel(mode.mode[0])
 
+print("MEAN: {0} -> FUEL: {1}".format(mean, mean_fuel))
+print("MEDIAN: {0} -> FUEL: {1}".format(median, median_fuel))
+print("MODE: {0} -> FUEL: {1}".format(mode.mode[0], mode_fuel))
 
-def draw_vertical(row: int, start: int, end: int):
-    for i in range(min(start, end), max(start, end) + 1):
-        fill_line(i, row)
+answer: int = min(mean_fuel, median_fuel, mode_fuel)
 
-
-def draw_line(start: List[int], end: List[int]):
-    if start[0] == end[0]:
-        draw_vertical(start[0], start[1], end[1])
-    else:
-        draw_horizontal(start[1], start[0], end[0])
-
-
-for l in lines:
-    draw_line(l[0], l[1])
-
-answer: int = 0
-for g in grid:
-    for val in g:
-        try:
-            if int(val) >= 2:
-                answer += 1
-        except:
-            pass
-
-
-print("ANSWER = {0}".format(answer))
+print("\nANSWER = {0}".format(answer))
