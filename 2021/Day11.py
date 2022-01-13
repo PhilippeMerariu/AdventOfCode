@@ -1,8 +1,8 @@
 from typing import List, Tuple
 
-STEPS: int = 2
+STEPS: int = 100
 
-file = open('input11_test.txt')
+file = open('input11.txt')
 line = file.readline().strip()
 
 octopus_grid: List[List[int]] = []
@@ -20,6 +20,7 @@ file.close()
 
 
 def increase_energy(row: int, col: int, adjacent: bool = False) -> None:
+    global flashing_lights
     # skip if row or col is beyond grid bounds
     if row <= -1 or row >= len(octopus_grid) or col <= -1 or col >= len(octopus_grid):
         return
@@ -30,6 +31,7 @@ def increase_energy(row: int, col: int, adjacent: bool = False) -> None:
         octopus_grid[row][col] += 1
     else:
         octopus_grid[row][col] = 0
+        flashing_lights += 1
         energy_bursts.append((row, col))
 
 
