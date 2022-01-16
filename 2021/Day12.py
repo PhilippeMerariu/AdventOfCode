@@ -1,31 +1,58 @@
 from typing import List, Dict
 
-caves: List[str] = []
-start_caves: List[str] = []
-end_caves: List[str] = []
-
 connections: Dict[str, List[str]] = {}
+paths: List[List[str]] = []
+small_caves: List[str] = []
 
-file = open('input12_test.txt')
+file = open('input12.txt')
 line = file.readline().strip()
+
+
+def update_connections(key, val) -> None:
+    if key == 'end':
+        return
+    if val == 'start':
+        return
+    if key not in connections:
+        connections.update({key: [val]})
+    else:
+        arr: List[str] = connections.get(key)
+        arr.append(val)
+        connections.update({key: arr.copy()})
+
+
+def path_ok(path: List[str]) -> bool:
+    for small in small_caves:
+        if len([x for x in path if x == small]) > 1:
+            return False
+    return True
+
 
 while line:
     input_caves: List[str] = line.split("-")
-    if input_caves[0] not in connections:
-        connections.update({input_caves[0]: [input_caves[1]]})
-    else:
-        connections.update({input_caves[0]: connections.get(input_caves[0]).append(input_caves[1])})
-
-    if input_caves[1] not in connections:
-        connections.update({input_caves[1]: [input_caves[0]]})
-    else:
-        connections.update({input_caves[1]: connections.get(input_caves[1]).append(input_caves[0])})
+    update_connections(input_caves[0], input_caves[1])
+    update_connections(input_caves[1], input_caves[0])
+    if input_caves[0].islower() and input_caves[0] not in ['start', 'end'] and input_caves[0] not in small_caves:
+        small_caves.append(input_caves[0])
+    if input_caves[1].islower() and input_caves[1] not in ['start', 'end'] and input_caves[1] not in small_caves:
+        small_caves.append(input_caves[1])
     line = file.readline().strip()
 file.close()
 
+for starting_path in connections.get('start'):
+    paths.append(['start', starting_path])
 
+while not all(x[-1] == 'end' for x in paths):
+    for p in paths.copy():
+        if p[-1] == 'end':
+            continue
+        next_options: List[str] = connections.get(p[-1])
+        paths.remove(p)
+        for opt in next_options:
+            new_path: List[str] = p.copy()
+            new_path.append(opt)
+            if path_ok(new_path) and new_path not in paths:
+                paths.append(new_path.copy())
 
-
-
-answer: int = 0
+answer: int = len(paths)
 print("ANSWER = {0}".format(answer))
