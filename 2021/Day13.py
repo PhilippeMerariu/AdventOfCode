@@ -6,7 +6,7 @@ paper: List[List[str]] = []
 max_height: int = 0
 max_width: int = 0
 
-file = open('input13_test.txt')
+file = open('input13.txt')
 line = file.readline()
 
 count: int = 0
@@ -81,6 +81,7 @@ def reconstruct_paper(fold: Tuple[str, int], fold_dots: List[Tuple[int, int]]) -
 for fold in folds:
     d = get_new_dots(fold)
     reconstruct_paper(fold, d)
+    break  # stop after first fold
 
 answer: int = 0
 for row in range(len(paper)):
