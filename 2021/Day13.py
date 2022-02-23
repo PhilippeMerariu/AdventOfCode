@@ -6,7 +6,7 @@ paper: List[List[str]] = []
 max_height: int = 0
 max_width: int = 0
 
-file = open('input13.txt')
+file = open('input13_test.txt')
 line = file.readline()
 
 count: int = 0
@@ -66,7 +66,9 @@ def reconstruct_paper(fold: Tuple[str, int], fold_dots: List[Tuple[int, int]]) -
             for c in range(fold[1]):
                 if (c, r) in fold_dots:
                     paper[r][c] = '#'
-        # TODO remove right half of paper...
+        for i in range(len(paper)):
+            for j in range(len(paper[i]) - 1, fold[1] - 1, -1):
+                del paper[i][j]
     else:
         for r in range(fold[1]):
             for c in range(len(paper[r])):
