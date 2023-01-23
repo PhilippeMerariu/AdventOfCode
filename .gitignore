@@ -1,1 +1,4 @@
 .idea/
+
+# Python VENV
+venv/
