@@ -1,42 +1,58 @@
 from typing import List, Dict
-from bigtree import Node, print_tree, find_name, find_attrs
+from bigtree import Node, print_tree, find_children
 from bigtree.utils.exceptions import TreeError
 
 MAX_SIZE: int = 100000
 
 root_node: Node = Node("root", type="dir")
-
-current_dir: str = "root"
-parent_dir: str = ""
+current_dir: Node = root_node
+dir_sizes: Dict[str, int] = {}
 
 file = open('input7.txt')
 line = file.readline()
 
 
-def create_node(name: str, node_type: str, parent: str = "", file_size: int = -1) -> None:
+def get_parent_paths(p_path: str) -> List[str]:
+    parent_paths: List[str] = []
+    parent_names: List[str] = p_path.split("/")[1:]
+    nb_paths: int = len(parent_names)
+    for _ in range(nb_paths):
+        path: str = "/".join(parent_names)
+        parent_paths.append(path)
+        del parent_names[-1]
+    return parent_paths
+
+
+def create_node(name: str, node_type: str, file_size: int = -1) -> Node:
+    global current_dir
     try:
         if node_type == "dir":
-            if parent != "":
-                Node(name, type=node_type, parent=find_name(root_node, parent))
+            if current_dir is not None:
+                return Node(name, type=node_type, parent=current_dir)
             else:
-                Node(name, type=node_type)
+                return Node(name, type=node_type)
         elif node_type == "file":
-            Node(name, type=node_type, f_size=file_size, parent=find_name(root_node, parent))
-    except TreeError:
-        pass  # node already exists
+            f_node: Node = Node(name, type=node_type, f_size=file_size, parent=current_dir)
+            p_node: Node = f_node.parent
+            all_parents: List[str] = get_parent_paths(p_node.path_name)  # p_node.path_name.split("/")[1:]
+            for p in all_parents:
+                if p in dir_sizes:
+                    dir_sizes[p] = dir_sizes.get(p) + file_size
+                else:
+                    dir_sizes.update({p: file_size})
+            return f_node
+    except TreeError as err:
+        print(err)  # node already exists
 
 
-def change_dir(d: str) -> None:
+def change_dir(d_name: str) -> None:
     global current_dir
-    global parent_dir
-    if d == "/":
-        create_node("root", "dir")
-        current_dir = "root"
-        parent_dir = ""
+    if d_name == "/":
+        current_dir = root_node
+    elif d_name == "..":
+        current_dir = current_dir.parent
     else:
-        create_node(d, "dir", current_dir)
-        parent_dir = current_dir
-        current_dir = d
+        current_dir = find_children(current_dir, d_name)
 
 
 line = line.strip()
@@ -52,17 +68,17 @@ while line:
     else:
         line = line.split(" ")
         if line[0] == "dir":
-            create_node(line[1], "dir", current_dir)
+            create_node(line[1], "dir")
         else:
-            create_node(line[1], "file", current_dir, int(line[0]))
+            create_node(line[1], "file", int(line[0]))
     line = file.readline().strip()
 file.close()
 
-print_tree(root_node, attr_list=["type", "f_size"])
+# print_tree(root_node, attr_list=["type", "f_size"])
 
-for node in find_name(root_node, "root").children:
-    for child_dir in find_attrs(node, "type", "file"):
-        pass
+total_size: int = 0
+for d, s in dir_sizes.items():
+    if s <= MAX_SIZE:
+        total_size += s
 
-
-print("ANSWER = {0}".format())
+print("ANSWER = {0}".format(total_size))
