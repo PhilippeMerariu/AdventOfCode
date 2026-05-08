@@ -1,4 +1,5 @@
 import math
+
 import itertools
 
 file = open('input8.txt')
@@ -54,16 +55,7 @@ for opt in list(itertools.combinations(flatten_connections(), 2)):
     box2: Box = opt[1]
     dists.update({(box1.id, box2.id): box_dist(box1, box2)})
 
-def get_min(dists: dict) -> tuple[Box, Box]:
-    min_dist = math.inf
-    min_pair = (0, 0)
-    for pair, d in dists.items():
-        if d < min_dist:
-            min_dist = d
-            min_pair = pair
-    box1, box2 = get_box(min_pair[0]), get_box(min_pair[1])
-    dists.pop(min_pair)
-    return (box1, box2)
+sorted_dists = dict(sorted(dists.items(), key=lambda item: item[1]))
 
 def is_alone(box: Box) -> bool:
     for conn in connections:
@@ -119,13 +111,14 @@ def make_connection(box1: Box, box2: Box) -> bool:
 
 
 nb_connections = 1000
-for _ in range(nb_connections):
-    box1, box2 = get_min(dists)
+for i in range(nb_connections):
+    box_id1, box_id2 = list(sorted_dists.keys())[i]
+    box1, box2 = get_box(box_id1), get_box(box_id2)
     make_connection(box1, box2)
 
 connection_sizes = [len(conn) for conn in connections]
 connection_sizes.sort(reverse=True)
 
-result = connection_sizes[0] * connection_sizes[1] * connection_sizes[3]
+result = connection_sizes[0] * connection_sizes[1] * connection_sizes[2]
 
 print(f"ANSWER = {result}")
