@@ -1,70 +1,86 @@
 import itertools
 
-file = open('input9_test.txt')
+file = open('input9.txt')
 line = file.readline()
 
 result = 0
 
 grid = []
-red_tiles = []
+corners = []
+walls = []
+inner_tiles = []
 
 while line:
     line = line.strip('\n')
-    red_tiles.append(tuple(int(t) for t in line.split(',')))
+    corners.append(tuple(int(t) for t in line.split(',')))
     line = file.readline()
 file.close()
 
-max_rows: int = max([r for _, r in red_tiles]) + 1
-max_cols: int = max([c for c, _ in red_tiles]) + 1
+# 2. Coordinate Compression
+sorted_x = sorted(list(set(c[0] for c in corners)))
+sorted_y = sorted(list(set(c[1] for c in corners)))
 
-# draw grid with red tiles
-for r in range(max_rows):
-    temp_row = []
-    for c in range(max_cols):
-        rowcol = (c, r)
-        if rowcol in red_tiles:
-            temp_row.append('#')
-        else:
-            temp_row.append('.')
-    grid.append(temp_row.copy())
+# Maps for fast lookup: coordinate -> index
+x_map = {x: i for i, x in enumerate(sorted_x)}
+y_map = {y: i for i, y in enumerate(sorted_y)}
 
-# draw outer loop green tiles
-for i in range(len(red_tiles)):
-    rt1 = red_tiles[i]
-    rt2 = red_tiles[0] if i + 1 >= len(red_tiles) else red_tiles[i + 1]
-    if (rt1[0] - rt2[0] == 0):  # same col
-        for x in range(min([rt1[1], rt2[1]]) + 1, max([rt1[1], rt2[1]])):
-            grid[x][rt1[0]] = 'X'
-    else:  # same row
-        for x in range(min([rt1[0], rt2[0]]) + 1, max([rt1[0], rt2[0]])):
-            grid[rt1[1]][x] = 'X'
+# 3. Create a compressed grid (Boolean: Is this chunk inside the loop?)
+# grid[i][j] represents the area between sorted_x[i]:sorted_x[i+1] and sorted_y[j]:sorted_y[j+1]
+cols, rows = len(sorted_x), len(sorted_y)
+is_filled = [[False for _ in range(rows)] for _ in range(cols)]
 
+# Helper to mark the perimeter (Red/Green lines)
+# This is much faster than storing every pixel
+for i in range(len(corners)):
+    p1 = corners[i]
+    p2 = corners[(i + 1) % len(corners)]
+    
+    if p1[0] == p2[0]: # Vertical line
+        x_idx = x_map[p1[0]]
+        y_start, y_end = sorted( [y_map[p1[1]], y_map[p2[1]]] )
+        for y_idx in range(y_start, y_end):
+            # Mark edges if needed, but for 'inside' logic, 
+            # we use the scanline/even-odd rule below.
+            pass
 
-# draw inner green tiles
-def is_inside_loop(row: int, col: int) -> bool:
-    if grid[row][col] in ['#', 'X']:
-        return False
-    cross_border = 0
-    for x in range(row + 1, len(grid)):
-        if grid[x][col] in ['#', 'X']:
-            cross_border += 1
-    return cross_border % 2 == 1 
+# 4. Fill the interior using a Scanline (Even-Odd Rule)
+# For each row of "chunks", determine which are inside the polygon
+for j in range(rows - 1):
+    y_mid = (sorted_y[j] + sorted_y[j+1]) / 2
+    intersections = []
+    for i in range(len(corners)):
+        p1, p2 = corners[i], corners[(i + 1) % len(corners)]
+        if min(p1[1], p2[1]) <= y_mid <= max(p1[1], p2[1]) and p1[1] != p2[1]:
+            intersections.append(p1[0])
+    
+    intersections.sort()
+    for start_x, end_x in zip(intersections[::2], intersections[1::2]):
+        for i in range(x_map[start_x], x_map[end_x]):
+            is_filled[i][j] = True
 
-for r in range(len(grid)):
-    for c in range(len(grid[r])):
-        if is_inside_loop(r, c):
-            grid[r][c] = '+'
+# 5. 2D Prefix Sum for O(1) Validation
+# sum_table[i][j] = count of 'False' (empty) chunks in the rectangle from (0,0) to (i,j)
+sum_table = [[0] * rows for _ in range(cols)]
+for i in range(cols - 1):
+    for j in range(rows - 1):
+        val = 0 if is_filled[i][j] else 1
+        sum_table[i+1][j+1] = val + sum_table[i][j+1] + sum_table[i+1][j] - sum_table[i][j]
 
-for g in grid:
-    print(''.join(g))
+def is_valid(x1, y1, x2, y2):
+    # Get index bounds
+    ix1, ix2 = sorted([x_map[x1], x_map[x2]])
+    iy1, iy2 = sorted([y_map[y1], y_map[y2]])
+    
+    # Area of 'False' chunks in this range must be 0
+    # Formula: Area = Table(BR) - Table(TR) - Table(BL) + Table(TL)
+    empty_count = sum_table[ix2][iy2] - sum_table[ix1][iy2] - sum_table[ix2][iy1] + sum_table[ix1][iy1]
+    return empty_count == 0
 
-corner_pairs = itertools.combinations(red_tiles, 2)
-
-for cp in corner_pairs:
-    r_size = abs(cp[0][0] - cp[1][0]) + 1
-    c_size = abs(cp[0][1] - cp[1][1]) + 1
-    volume = r_size * c_size
-    if volume > result:
-        result = volume
+# 6. Check all red tile pairs
+for (c1, c2) in itertools.combinations(corners, 2):
+    if is_valid(c1[0], c1[1], c2[0], c2[1]):
+        area = (abs(c1[0] - c2[0]) + 1) * (abs(c1[1] - c2[1]) + 1)
+        if area > result:
+            result = area
 
 print(f"ANSWER = {result}")
