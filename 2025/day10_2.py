@@ -1,4 +1,6 @@
-from collections import deque
+from fractions import Fraction
+from itertools import product
+from math import lcm
 
 file = open('input10.txt')
 line = file.readline()
@@ -24,86 +26,76 @@ while line:
     line = file.readline()
 file.close()
 
-#def compute_jolts(btns: tuple[list[int]], jolts: list[int], expected: list[int]) -> list[int]:
-#    for b in btns:
-#        for j in b:
-#            jolts[j] += 1
-#            if jolts[j] > expected[j]:
-#                return []
-#    return jolts
+def solve_machine(target, buttons):
+    n = len(target)
+    m = len(buttons)
 
-def solve_machine(pattern, buttons):
-    num_counters = len(pattern)
-    btn_effects = buttons
+    max_presses = [min(target[c] for c in b) for b in buttons]
+    order = sorted(range(m), key=lambda j: -max_presses[j])
 
-    best_presses = float('inf')
+    aug = [[Fraction(0)] * (m + 1) for _ in range(n)]
+    for col, b_idx in enumerate(order):
+        for c in buttons[b_idx]:
+            aug[c][col] = Fraction(1)
+    for c in range(n):
+        aug[c][m] = Fraction(target[c])
 
-    def dfs(btn_idx, current_jolts, current_presses):
-        nonlocal best_presses
+    pivots = []
+    row = 0
+    for col in range(m):
+        p = next((i for i in range(row, n) if aug[i][col] != 0), None)
+        if p is None:
+            continue
+        aug[row], aug[p] = aug[p], aug[row]
+        pivot_value = aug[row][col]
+        aug[row] = [v / pivot_value for v in aug[row]]
+        for i in range(n):
+            if i != row and aug[i][col] != 0:
+                f = aug[i][col]
+                aug[i] = [a - f * b for a, b in zip(aug[i], aug[row])]
+        pivots.append(col)
+        row += 1
 
-        if current_presses >= best_presses:
-            return
+    for leftover in aug[len(pivots):]:
+        if leftover[m] != 0:
+            return None  # contradictory equations, no solution at all
 
-        if btn_idx == len(buttons):
-            if current_jolts == pattern:
-                best_presses = min(best_presses, current_presses)
-            return
+    free = [j for j in range(m) if j not in pivots]
 
-        btn_maxes = []
-        for i in range(btn_idx, len(buttons)):
-            m = min(pattern[rc] - current_jolts[rc] for rc in btn_effects[i])
-            btn_maxes.append(max(0, m))
+    equations = []
+    for i, col in enumerate(pivots):
+        den = lcm(aug[i][m].denominator, *[aug[i][j].denominator for j in free])
+        equations.append((int(aug[i][m] * den),
+                          [int(aug[i][j] * den) for j in free],
+                          den))
 
-        for c in range(num_counters):
-            needed = pattern[c] - current_jolts[c]
-            if needed < 0:
-                return
-
-            max_supply = 0
-            for idx, i in enumerate(range(btn_idx, len(buttons))):
-                if c in btn_effects[i]:
-                    max_supply += btn_maxes[idx]
-
-            if max_supply < needed:
-                return
-
-        curr_max = btn_maxes[0]
-        for p in range(curr_max + 1):
-            next_jolts = list(current_jolts)
-            for c in btn_effects[btn_idx]:
-                next_jolts[c] += p
-
-            dfs(btn_idx + 1, next_jolts, current_presses + p)
-
-    dfs(0, [0] * num_counters, 0)
-    return best_presses
+    best = None
+    for values in product(*[range(max_presses[order[j]] + 1) for j in free]):
+        total = sum(values)
+        for rhs, coefs, den in equations:
+            v = rhs
+            for coef, x in zip(coefs, values):
+                v -= coef * x
+            if v < 0 or v % den:
+                break  # negative or fractional number of presses
+            total += v // den
+        else:
+            if best is None or total < best:
+                best = total
+    return best
 
 
-count = 1
-for m in machine:
-    print(f"Progress: {count+1}/{len(machine)}", end='\r', flush=True) 
-    pattern = m['joltages']
-    buttons = m['buttons']
-    #result += solve_machine(pattern, buttons)
-    clicks = solve_machine(pattern, buttons)
-    if clicks != float('inf'):
+result = 0
+unsolvable = []
+for count, m in enumerate(machine, 1):
+    print(f"Progress: {count}/{len(machine)}", end='\r', flush=True)
+    clicks = solve_machine(m['joltages'], m['buttons'])
+    if clicks is None:
+        unsolvable.append(count)
+    else:
         result += clicks
-    count += 1
-
-    #nb_clicks = 1
-    #jolts = [0] * len(pattern)
-    #while jolts != pattern:
-    #    print(f"Progress: {count+1}/{len(machine)} || Clicks={nb_clicks}", end='\r', flush=True)
-    #    combos = itertools.combinations_with_replacement(buttons, nb_clicks)
-    #    for c in combos:
-    #        jolts = compute_jolts(c, [0] * len(pattern), pattern)
-    #        #print(f"pattern={pattern} || clicks={nb_clicks} || combo={c} || lights={jolts}")
-    #        if jolts == pattern:
-    #            #print(f'FOUND LIGHT PATTERN!!!! ==> {c} with {nb_clicks} clicks')
-    #            result += nb_clicks
-    #            count += 1
-    #            break
-    #    nb_clicks += 1
 
 print()
+if unsolvable:
+    print(f"NO SOLUTION for machines: {unsolvable}")
 print(f"ANSWER = {result}")
